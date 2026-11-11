@@ -54,7 +54,21 @@ export function useWorkspaceController() {
             const refreshed =
               resumeData.schedule.find((t) => t.id === prev.id) ||
               tasksData.find((t) => t.id === prev.id);
-            if (refreshed) return refreshed;
+            return refreshed || prev;
+          }
+          try {
+            const savedRaw = localStorage.getItem('chronofocus_active_timer_v1');
+            if (savedRaw) {
+              const saved = JSON.parse(savedRaw) as { taskId?: number };
+              if (saved.taskId) {
+                const persistedTask =
+                  resumeData.schedule.find((t) => t.id === saved.taskId) ||
+                  tasksData.find((t) => t.id === saved.taskId);
+                if (persistedTask) return persistedTask;
+              }
+            }
+          } catch {
+            // Ignore localStorage parse errors
           }
           const nextInProgress = resumeData.schedule.find((t) => t.status === 'in_progress');
           if (nextInProgress) return nextInProgress;
@@ -78,16 +92,14 @@ export function useWorkspaceController() {
   const createTask = async (payload: CreateTaskPayload) => {
     const created = await apiClient.createTask(payload);
     await fetchAllData(true);
-    setActiveTask(created);
+    setActiveTask((prev) => prev ?? created);
     return created;
   };
 
   const updateTask = async (id: number, payload: Partial<Task>) => {
     const updated = await apiClient.updateTask(id, payload);
     await fetchAllData(true);
-    if (activeTask?.id === id) {
-      setActiveTask(updated);
-    }
+    setActiveTask((prev) => (prev?.id === id ? updated : prev));
     return updated;
   };
 
@@ -170,4 +182,3 @@ export function useWorkspaceController() {
     launchTaskInChronometer,
   };
 }
-

@@ -8,6 +8,54 @@ interface UseReverseTimerProps {
   onSessionLogged: (payload: LogSessionPayload) => Promise<void>;
 }
 
+interface SavedTimerState {
+  taskId: number;
+  targetSeconds: number;
+  remainingSeconds: number;
+  isRunning: boolean;
+  sessionStart: string | null;
+  lastUpdatedAt: number;
+}
+
+const STORAGE_KEY = 'chronofocus_active_timer_v1';
+
+function loadPersistedTimer(taskId: number): SavedTimerState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedTimerState;
+    if (parsed.taskId !== taskId) return null;
+
+    if (parsed.isRunning && parsed.lastUpdatedAt) {
+      const elapsedWhileAway = Math.max(
+        0,
+        Math.round((Date.now() - parsed.lastUpdatedAt) / 1000)
+      );
+      const nextRemaining = Math.max(0, parsed.remainingSeconds - elapsedWhileAway);
+      return {
+        ...parsed,
+        remainingSeconds: nextRemaining,
+        isRunning: nextRemaining > 0,
+      };
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedTimer(state: SavedTimerState | null) {
+  try {
+    if (!state) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 export function useReverseTimerController({ activeTask, onSessionLogged }: UseReverseTimerProps) {
   const [targetSeconds, setTargetSeconds] = useState<number>(25 * 60);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(25 * 60);
@@ -20,22 +68,118 @@ export function useReverseTimerController({ activeTask, onSessionLogged }: UseRe
   const sessionStartRef = useRef<string | null>(null);
   const lastTickTimestampRef = useRef<number | null>(null);
   const activeTaskIdRef = useRef<number | null>(null);
+  const taskSnapshotsRef = useRef<
+    Record<number, { targetSeconds: number; remainingSeconds: number; sessionStart: string | null }>
+  >({});
+
+  const activeTaskRef = useRef<Task | null>(activeTask);
+  activeTaskRef.current = activeTask;
+
+  const targetSecondsRef = useRef<number>(targetSeconds);
+  targetSecondsRef.current = targetSeconds;
+
+  const remainingSecondsRef = useRef<number>(remainingSeconds);
+  remainingSecondsRef.current = remainingSeconds;
+
+  const soundEnabledRef = useRef<boolean>(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+
+  const autoCompleteTaskRef = useRef<boolean>(autoCompleteTask);
+  autoCompleteTaskRef.current = autoCompleteTask;
+
+  const finalizeSession = useCallback(
+    async (
+      loggedSeconds: number,
+      completedCountdown: boolean,
+      markTaskDone: boolean,
+      taskOverride?: Task
+    ) => {
+      const targetTask = taskOverride || activeTaskRef.current;
+      if (!targetTask || loggedSeconds <= 0) return;
+
+      const currentTargetSec = targetSecondsRef.current;
+      const endedAt = new Date().toISOString();
+      const startedAt =
+        sessionStartRef.current || new Date(Date.now() - loggedSeconds * 1000).toISOString();
+
+      await onSessionLogged({
+        task_id: targetTask.id,
+        planned_seconds: currentTargetSec,
+        duration_seconds: loggedSeconds,
+        completed_countdown: completedCountdown,
+        notes:
+          sessionNotes.trim() ||
+          (completedCountdown
+            ? `Completed ${Math.round(currentTargetSec / 60)}m reverse countdown session.`
+            : `Logged ${Math.max(1, Math.round(loggedSeconds / 60))}m focus sprint.`),
+        started_at: startedAt,
+        ended_at: endedAt,
+        mark_task_completed: markTaskDone,
+      });
+
+      sessionStartRef.current = null;
+      delete taskSnapshotsRef.current[targetTask.id];
+      savePersistedTimer(null);
+      setSessionNotes('');
+    },
+    [onSessionLogged, sessionNotes]
+  );
+
+  const finalizeSessionRef = useRef(finalizeSession);
+  finalizeSessionRef.current = finalizeSession;
 
   useEffect(() => {
     if (!activeTask) {
       activeTaskIdRef.current = null;
       return;
     }
+
     if (activeTask.id !== activeTaskIdRef.current) {
+      const previousTaskId = activeTaskIdRef.current;
+      if (previousTaskId !== null) {
+        taskSnapshotsRef.current[previousTaskId] = {
+          targetSeconds: targetSecondsRef.current,
+          remainingSeconds: remainingSecondsRef.current,
+          sessionStart: sessionStartRef.current,
+        };
+      }
+
       activeTaskIdRef.current = activeTask.id;
+
+      const persisted = loadPersistedTimer(activeTask.id);
+      if (persisted) {
+        sessionStartRef.current = persisted.sessionStart;
+        lastTickTimestampRef.current = persisted.isRunning ? Date.now() : null;
+        setTargetSeconds(persisted.targetSeconds);
+        setRemainingSeconds(persisted.remainingSeconds);
+        setIsRunning(persisted.isRunning);
+        setLastCompletedBanner(null);
+        return;
+      }
+
+      const inMemorySnapshot = taskSnapshotsRef.current[activeTask.id];
+      if (inMemorySnapshot) {
+        sessionStartRef.current = inMemorySnapshot.sessionStart;
+        lastTickTimestampRef.current = null;
+        setIsRunning(false);
+        setTargetSeconds(inMemorySnapshot.targetSeconds);
+        setRemainingSeconds(inMemorySnapshot.remainingSeconds);
+        setLastCompletedBanner(null);
+        return;
+      }
+
       setIsRunning(false);
       sessionStartRef.current = null;
       lastTickTimestampRef.current = null;
 
       const plannedTotalSec = activeTask.planned_duration_minutes * 60;
-      const remainingPlannedSec = Math.max(60, plannedTotalSec - activeTask.actual_duration_seconds);
+      const remainingPlannedSec = Math.max(
+        60,
+        plannedTotalSec - activeTask.actual_duration_seconds
+      );
       const initialSec =
-        activeTask.actual_duration_seconds > 0 && activeTask.actual_duration_seconds < plannedTotalSec
+        activeTask.actual_duration_seconds > 0 &&
+        activeTask.actual_duration_seconds < plannedTotalSec
           ? remainingPlannedSec
           : plannedTotalSec;
 
@@ -45,42 +189,28 @@ export function useReverseTimerController({ activeTask, onSessionLogged }: UseRe
     }
   }, [activeTask]);
 
+  useEffect(() => {
+    if (!activeTask) return;
+    taskSnapshotsRef.current[activeTask.id] = {
+      targetSeconds,
+      remainingSeconds,
+      sessionStart: sessionStartRef.current,
+    };
+    if (isRunning || remainingSeconds < targetSeconds) {
+      savePersistedTimer({
+        taskId: activeTask.id,
+        targetSeconds,
+        remainingSeconds,
+        isRunning,
+        sessionStart: sessionStartRef.current,
+        lastUpdatedAt: Date.now(),
+      });
+    }
+  }, [activeTask, targetSeconds, remainingSeconds, isRunning]);
+
   const elapsedSeconds = Math.max(0, targetSeconds - remainingSeconds);
   const progressPercent =
     targetSeconds > 0 ? Math.min(100, Math.max(0, (remainingSeconds / targetSeconds) * 100)) : 0;
-
-  const finalizeSession = useCallback(
-    async (
-      loggedSeconds: number,
-      completedCountdown: boolean,
-      markTaskDone: boolean
-    ) => {
-      if (!activeTask || loggedSeconds <= 0) return;
-
-      const endedAt = new Date().toISOString();
-      const startedAt =
-        sessionStartRef.current || new Date(Date.now() - loggedSeconds * 1000).toISOString();
-
-      await onSessionLogged({
-        task_id: activeTask.id,
-        planned_seconds: targetSeconds,
-        duration_seconds: loggedSeconds,
-        completed_countdown: completedCountdown,
-        notes:
-          sessionNotes.trim() ||
-          (completedCountdown
-            ? `Completed ${Math.round(targetSeconds / 60)}m reverse countdown session.`
-            : `Logged ${Math.max(1, Math.round(loggedSeconds / 60))}m focus sprint.`),
-        started_at: startedAt,
-        ended_at: endedAt,
-        mark_task_completed: markTaskDone,
-      });
-
-      sessionStartRef.current = null;
-      setSessionNotes('');
-    },
-    [activeTask, onSessionLogged, sessionNotes, targetSeconds]
-  );
 
   useEffect(() => {
     if (!isRunning) {
@@ -103,25 +233,27 @@ export function useReverseTimerController({ activeTask, onSessionLogged }: UseRe
 
       setRemainingSeconds((prev) => {
         const next = Math.max(0, prev - deltaSeconds);
-        const taskLabel = activeTask ? activeTask.title : 'Focus Session';
+        const currentTask = activeTaskRef.current;
+        const currentTarget = targetSecondsRef.current;
+        const taskLabel = currentTask ? currentTask.title : 'Focus Session';
         document.title = `(${formatCountdown(next)}) ${taskLabel} | ChronoFocus`;
 
         if (next === 0 && prev > 0) {
           setIsRunning(false);
-          SoundService.playCompletionChime(soundEnabled);
+          SoundService.playCompletionChime(soundEnabledRef.current);
           setLastCompletedBanner(
-            `Countdown finished! Logged ${Math.round(targetSeconds / 60)}m on "${
-              activeTask?.title || 'Task'
+            `Countdown finished! Logged ${Math.round(currentTarget / 60)}m on "${
+              currentTask?.title || 'Task'
             }".`
           );
-          void finalizeSession(targetSeconds, true, autoCompleteTask);
+          void finalizeSessionRef.current(currentTarget, true, autoCompleteTaskRef.current);
         }
         return next;
       });
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isRunning, activeTask, soundEnabled, targetSeconds, autoCompleteTask, finalizeSession]);
+  }, [isRunning]);
 
   const startTimer = () => {
     if (!activeTask) return;
@@ -148,6 +280,10 @@ export function useReverseTimerController({ activeTask, onSessionLogged }: UseRe
     setTargetSeconds(nextSec);
     setRemainingSeconds(nextSec);
     setLastCompletedBanner(null);
+    if (activeTask) {
+      delete taskSnapshotsRef.current[activeTask.id];
+    }
+    savePersistedTimer(null);
   };
 
   const adjustMinutes = (deltaMinutes: number) => {
@@ -200,4 +336,3 @@ export function useReverseTimerController({ activeTask, onSessionLogged }: UseRe
     logCurrentProgress,
   };
 }
-
