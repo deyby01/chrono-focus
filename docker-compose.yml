@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: chronofocus-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chronofocus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chronofocus_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-chronofocus_db}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chronofocus} -d ${POSTGRES_DB:-chronofocus_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chronofocus-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      BACKEND_PORT: 4000
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-chronofocus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chronofocus_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-chronofocus_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-chronofocus}:${POSTGRES_PASSWORD:-chronofocus_secret}@db:5432/${POSTGRES_DB:-chronofocus_db}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+      - "${BACKEND_PORT:-4001}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4001/api}
+    container_name: chronofocus-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
