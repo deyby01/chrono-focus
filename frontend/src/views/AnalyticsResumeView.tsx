@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import {
   Trophy,
   Flame,
@@ -30,6 +30,7 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
   dailyResume,
   performance,
 }) => {
+  const dateFilterId = useId();
   const summary = dailyResume?.summary;
   const overall = performance?.overall;
   const weekly = performance?.weeklyActivity || [];
@@ -42,7 +43,11 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
           <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
             Daily Resume & Personal Records
           </span>
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-50 mt-1">
+          <h2
+            id="main-view-heading"
+            tabIndex={-1}
+            className="text-2xl font-bold tracking-tight text-zinc-50 mt-1 focus:outline-none"
+          >
             Time Analytics, Daily Resume & Best Time
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
@@ -52,8 +57,13 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 shrink-0">
-          <Calendar size={14} className="text-emerald-400" />
+          <Calendar size={14} className="text-emerald-400" aria-hidden="true" />
+          <label htmlFor={dateFilterId} className="visually-hidden">
+            Select resume date
+          </label>
           <input
+            id={dateFilterId}
+            name="resume_date"
             type="date"
             value={selectedDate}
             onChange={(e) => onSelectDate(e.target.value)}
@@ -65,7 +75,10 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
       {/* 4 Personal Record Highlight Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 border-t-2 border-t-amber-400/70 p-4 flex items-start gap-3.5 shadow-glass-inset">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+          <div
+            aria-hidden="true"
+            className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0"
+          >
             <Trophy size={20} />
           </div>
           <div className="min-w-0">
@@ -86,7 +99,10 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
         </div>
 
         <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 border-t-2 border-t-emerald-400/70 p-4 flex items-start gap-3.5 shadow-glass-inset">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+          <div
+            aria-hidden="true"
+            className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0"
+          >
             <Flame size={20} />
           </div>
           <div className="min-w-0">
@@ -109,7 +125,10 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
         </div>
 
         <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 border-t-2 border-t-violet-400/70 p-4 flex items-start gap-3.5 shadow-glass-inset">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-400 flex items-center justify-center shrink-0">
+          <div
+            aria-hidden="true"
+            className="w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-400 flex items-center justify-center shrink-0"
+          >
             <Zap size={20} />
           </div>
           <div className="min-w-0">
@@ -132,7 +151,10 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
         </div>
 
         <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 border-t-2 border-t-cyan-400/70 p-4 flex items-start gap-3.5 shadow-glass-inset">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
+          <div
+            aria-hidden="true"
+            className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0"
+          >
             <CheckCircle2 size={20} />
           </div>
           <div className="min-w-0">
@@ -160,7 +182,7 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
                 Daily Resume ({formatReadableDate(selectedDate)})
               </span>
               <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2 mt-0.5">
-                <Clock size={15} className="text-emerald-400" />
+                <Clock size={15} className="text-emerald-400" aria-hidden="true" />
                 <span>End-of-Day Summary & Category Breakdown</span>
               </h3>
             </div>
@@ -223,7 +245,16 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
                       </span>
                     </div>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/60">
+                  <progress
+                    value={pct}
+                    max={100}
+                    aria-label={`${cat.name} daily focus progress`}
+                    className="visually-hidden"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/60"
+                  >
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
@@ -246,7 +277,7 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
                 Consistency & Momentum
               </span>
               <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2 mt-0.5">
-                <BarChart3 size={15} className="text-cyan-400" />
+                <BarChart3 size={15} className="text-cyan-400" aria-hidden="true" />
                 <span>Last 7 Days Focus Activity</span>
               </h3>
             </div>
@@ -266,10 +297,11 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
                 <button
                   key={day.date}
                   type="button"
+                  aria-pressed={isSelected}
+                  aria-label={`${day.day_label} ${day.date}: ${formatDurationHuman(
+                    day.focused_seconds
+                  )} focused, ${day.tasks_completed} tasks completed`}
                   onClick={() => onSelectDate(day.date)}
-                  title={`${day.date}: ${formatDurationHuman(day.focused_seconds)} (${
-                    day.tasks_completed
-                  } tasks completed)`}
                   className={`rounded-xl border p-2 flex flex-col items-center gap-1.5 transition ${
                     isSelected
                       ? 'bg-zinc-900 border-emerald-500/50 shadow-[0_0_16px_rgba(16,185,129,0.18)]'
@@ -279,7 +311,10 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
                   <span className="text-[10px] font-mono text-zinc-400 tabular">
                     {day.focused_seconds > 0 ? formatDurationHuman(day.focused_seconds) : '0m'}
                   </span>
-                  <div className="flex-1 w-4 rounded-full bg-zinc-900 flex items-end overflow-hidden p-0.5">
+                  <div
+                    aria-hidden="true"
+                    className="flex-1 w-4 rounded-full bg-zinc-900 flex items-end overflow-hidden p-0.5"
+                  >
                     <div
                       className="w-full rounded-full bg-gradient-to-t from-emerald-500 via-teal-400 to-cyan-400 transition-all duration-300"
                       style={{
@@ -298,16 +333,17 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
 
           <div className="border-t border-zinc-800/80 pt-4 flex flex-col gap-3">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
-              <Layers size={12} className="text-violet-400" />
+              <Layers size={12} className="text-violet-400" aria-hidden="true" />
               All-Time Investment by Task Type
             </span>
-            <div className="flex flex-wrap gap-2">
+            <ul className="flex flex-wrap gap-2" role="list">
               {(performance?.categoryTotals || []).map((c) => (
-                <div
+                <li
                   key={c.id}
                   className="inline-flex items-center gap-2 rounded-xl bg-zinc-950/90 border border-zinc-800/80 px-3 py-1.5 text-xs"
                 >
                   <span
+                    aria-hidden="true"
                     className="w-2 h-2 rounded-full"
                     style={{
                       backgroundColor: c.color,
@@ -318,9 +354,9 @@ export const AnalyticsResumeView: React.FC<AnalyticsResumeViewProps> = ({
                   <strong className="font-mono text-zinc-100 tabular">
                     {formatDurationHuman(c.total_seconds)}
                   </strong>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </div>
       </div>

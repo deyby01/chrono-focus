@@ -26,7 +26,11 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
           <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">
             Task Taxonomy & Daily Budgets
           </span>
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-50 mt-1">
+          <h2
+            id="main-view-heading"
+            tabIndex={-1}
+            className="text-2xl font-bold tracking-tight text-zinc-50 mt-1 focus:outline-none"
+          >
             Task Types, Learnings & Hobbies
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
@@ -39,7 +43,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
           onClick={onOpenNewCategoryModal}
           className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs px-4 py-2.5 shadow-[0_0_20px_rgba(255,255,255,0.12)] transition shrink-0"
         >
-          <Plus size={15} strokeWidth={2.5} />
+          <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
           <span>Register New Task Type</span>
         </button>
       </header>
@@ -52,18 +56,20 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
             targetSec > 0 ? Math.min(100, Math.round((todaySpentSec / targetSec) * 100)) : 0;
 
           return (
-            <div
+            <article
               key={cat.id}
               className="group relative rounded-2xl bg-zinc-900/55 border border-zinc-800/80 hover:border-zinc-700/80 p-5 flex flex-col gap-4 shadow-glass-inset transition-all overflow-hidden"
             >
               {/* Subtle top ambient accent line */}
               <div
+                aria-hidden="true"
                 className="absolute inset-x-0 top-0 h-0.5 opacity-80"
                 style={{ backgroundColor: cat.color }}
               />
 
               <div className="flex items-center justify-between">
                 <div
+                  aria-hidden="true"
                   className="w-11 h-11 rounded-xl border flex items-center justify-center"
                   style={{
                     backgroundColor: `${cat.color}18`,
@@ -79,18 +85,18 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
                   <button
                     type="button"
                     onClick={() => onEditCategory(cat)}
-                    title="Edit task type"
+                    aria-label={`Edit task type ${cat.name}`}
                     className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/80 transition"
                   >
-                    <Edit3 size={14} />
+                    <Edit3 size={14} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
                     onClick={() => onDeleteCategory(cat.id)}
-                    title="Delete task type"
+                    aria-label={`Delete task type ${cat.name}`}
                     className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={14} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -106,13 +112,23 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
               <div className="rounded-xl bg-zinc-950/80 border border-zinc-800/80 p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between text-[11px] text-zinc-400 tabular">
                   <span className="inline-flex items-center gap-1.5">
-                    <Target size={12} style={{ color: cat.color }} />
-                    Today: <strong className="text-zinc-100">{formatDurationHuman(todaySpentSec)}</strong> /{' '}
+                    <Target size={12} style={{ color: cat.color }} aria-hidden="true" />
+                    Today:{' '}
+                    <strong className="text-zinc-100">{formatDurationHuman(todaySpentSec)}</strong> /{' '}
                     {formatMinutesHuman(cat.daily_target_minutes)}
                   </span>
                   <span className="font-mono font-bold text-zinc-200">{targetPct}%</span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-zinc-900 overflow-hidden">
+                <progress
+                  value={targetPct}
+                  max={100}
+                  aria-label={`Daily target progress for ${cat.name}`}
+                  className="visually-hidden"
+                />
+                <div
+                  aria-hidden="true"
+                  className="h-1.5 w-full rounded-full bg-zinc-900 overflow-hidden"
+                >
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
@@ -126,14 +142,14 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
 
               <div className="flex items-center justify-between text-xs text-zinc-400 tabular pt-0.5">
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock size={13} className="text-zinc-500" />
+                  <Clock size={13} className="text-zinc-500" aria-hidden="true" />
                   All-time:{' '}
                   <strong className="text-zinc-200">
                     {formatDurationHuman(cat.total_spent_seconds || 0)}
                   </strong>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-emerald-400" />
+                  <CheckCircle2 size={13} className="text-emerald-400" aria-hidden="true" />
                   Done: <strong className="text-zinc-200">{cat.completed_tasks || 0}</strong>/
                   {cat.total_tasks || 0}
                 </span>
@@ -144,10 +160,10 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
                 onClick={() => onOpenTaskForCategory(cat.id)}
                 className="w-full mt-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 py-2 px-3 text-xs font-semibold text-zinc-200 transition"
               >
-                <Plus size={14} style={{ color: cat.color }} />
+                <Plus size={14} style={{ color: cat.color }} aria-hidden="true" />
                 <span>Schedule Task in {cat.name}</span>
               </button>
-            </div>
+            </article>
           );
         })}
       </div>

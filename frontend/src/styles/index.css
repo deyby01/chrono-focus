@@ -2,22 +2,168 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand-color: #10b981;
+  --scrollbar-thumb: #71717a;
+  --scrollbar-track: #09090b;
+  color-scheme: dark;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
 @layer base {
   html,
   body {
     @apply bg-zinc-950 text-zinc-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-200;
-    color-scheme: dark;
+    accent-color: var(--brand-color);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
+  :where(a:any-link, button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--brand-color);
+    outline-offset: 2px;
+  }
+}
+
+/* Scrollbar fallback for browsers without standard scrollbar-color support */
+@supports not (scrollbar-color: auto) {
+  :root {
+    scrollbar-width: auto;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
-  ::-webkit-scrollbar-track {
-    @apply bg-zinc-950;
-  }
+
   ::-webkit-scrollbar-thumb {
-    @apply bg-zinc-800 rounded-full hover:bg-zinc-700;
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+}
+
+/* Fallback for older browsers without accent-color */
+@supports not (accent-color: var(--brand-color)) {
+  input[type='checkbox'] {
+    border: 2px solid #71717a;
+  }
+  input[type='checkbox']:checked {
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
+  }
+}
+
+/* Visually hidden utility keeping elements in the accessibility tree */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Auto-sizing textarea using CSS field-sizing: content */
+textarea.auto-grow-textarea {
+  field-sizing: content;
+  height: auto;
+  width: 100%;
+  min-block-size: 3lh;
+  max-block-size: 8lh;
+}
+
+/* Native <dialog> top-layer scroll containment and animations */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgba(9, 9, 11, 0);
+  backdrop-filter: blur(0px);
+  transition-property: background-color, backdrop-filter, display, overlay;
+  transition-duration: 0.25s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+dialog.chrono-dialog {
+  opacity: 0;
+  margin: auto;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border: none;
+  max-width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  width: 100%;
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.25s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog.chrono-dialog {
+    transform: scale(0.95);
+  }
+}
+
+:is(dialog.chrono-dialog[open]):where(:not([data-closing])) {
+  opacity: 1;
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(1);
+
+    @starting-style {
+      transform: scale(0.95);
+    }
+  }
+}
+
+:is(dialog.chrono-dialog[open]):where(:not([data-closing]))::backdrop {
+  background-color: rgba(9, 9, 11, 0.78);
+  backdrop-filter: blur(6px);
+
+  @starting-style {
+    background-color: rgba(9, 9, 11, 0);
+    backdrop-filter: blur(0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.chrono-dialog,
+  dialog::backdrop {
+    transition-duration: 0.1s;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 

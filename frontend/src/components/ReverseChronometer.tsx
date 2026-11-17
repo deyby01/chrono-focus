@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import {
   Play,
   Pause,
@@ -83,6 +83,11 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
   onOpenNewTaskModal,
 }) => {
   const [customMinInput, setCustomMinInput] = useState<string>('');
+  const baseId = useId();
+  const taskSelectId = `${baseId}-task-select`;
+  const customMinId = `${baseId}-custom-min`;
+  const sessionNoteId = `${baseId}-session-note`;
+  const autoCompleteId = `${baseId}-auto-complete`;
 
   const radius = 124;
   const circumference = 2 * Math.PI * radius;
@@ -100,7 +105,10 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
   if (!activeTask) {
     return (
       <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 p-10 text-center flex flex-col items-center justify-center gap-4 shadow-glass-inset">
-        <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-emerald-400">
+        <div
+          aria-hidden="true"
+          className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-emerald-400"
+        >
           <Clock size={24} />
         </div>
         <div className="max-w-xs space-y-1.5">
@@ -115,7 +123,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
           onClick={onOpenNewTaskModal}
           className="mt-1 inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs px-4 py-2.5 shadow-glow-emerald transition"
         >
-          <Plus size={15} strokeWidth={2.5} /> Create First Task
+          <Plus size={15} strokeWidth={2.5} aria-hidden="true" /> Create First Task
         </button>
       </div>
     );
@@ -131,13 +139,18 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
     <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 p-6 flex flex-col gap-5 shadow-glass-inset backdrop-blur-md relative overflow-hidden">
       {/* Subtle Top Glow matching ring color */}
       <div
+        aria-hidden="true"
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-36 rounded-full blur-3xl opacity-20 transition-colors duration-500"
         style={{ backgroundColor: ringColor }}
       />
 
       {lastCompletedBanner && (
-        <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/35 px-3.5 py-2.5 text-xs font-semibold text-emerald-300">
-          <Sparkles size={15} className="text-emerald-400 shrink-0" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/35 px-3.5 py-2.5 text-xs font-semibold text-emerald-300"
+        >
+          <Sparkles size={15} className="text-emerald-400 shrink-0" aria-hidden="true" />
           <span>{lastCompletedBanner}</span>
         </div>
       )}
@@ -145,10 +158,15 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
       {/* Top Selector Bar */}
       <div className="flex items-end justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <span className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5">
+          <label
+            htmlFor={taskSelectId}
+            className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5"
+          >
             Active Focus Target
-          </span>
+          </label>
           <select
+            id={taskSelectId}
+            name="active_task"
             value={activeTask.id}
             onChange={(e) => {
               const found = availableTasks.find((t) => t.id === Number(e.target.value));
@@ -167,15 +185,20 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
 
         <button
           type="button"
+          aria-pressed={soundEnabled}
+          aria-label={soundEnabled ? 'Mute completion chime' : 'Enable completion chime'}
           onClick={() => onToggleSound(!soundEnabled)}
-          title={soundEnabled ? 'Completion sound enabled' : 'Completion sound muted'}
           className={`p-2 rounded-xl border transition ${
             soundEnabled
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
               : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'
           }`}
         >
-          {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          {soundEnabled ? (
+            <Volume2 size={16} aria-hidden="true" />
+          ) : (
+            <VolumeX size={16} aria-hidden="true" />
+          )}
         </button>
       </div>
 
@@ -200,16 +223,35 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
           {activeTask.priority}
         </span>
         <span className="text-zinc-400 text-xs tabular ml-auto">
-          Planned: <strong className="text-zinc-200">{formatMinutesHuman(activeTask.planned_duration_minutes)}</strong>
+          Planned:{' '}
+          <strong className="text-zinc-200">
+            {formatMinutesHuman(activeTask.planned_duration_minutes)}
+          </strong>
           {' • '}
-          Spent: <strong className="text-emerald-400">{formatDurationHuman(activeTask.actual_duration_seconds)}</strong>
+          Spent:{' '}
+          <strong className="text-emerald-400">
+            {formatDurationHuman(activeTask.actual_duration_seconds)}
+          </strong>
         </span>
       </div>
 
-      {/* Circular Reverse Countdown Ring */}
+      {/* Circular Reverse Countdown Ring with Semantic <progress> Foundation */}
       <div className="flex justify-center py-2">
         <div className="relative w-[280px] h-[280px] flex items-center justify-center">
-          <svg className="-rotate-90 w-[280px] h-[280px]" viewBox="0 0 280 280">
+          <progress
+            value={Math.round(progressPercent)}
+            max={100}
+            aria-label={`Reverse countdown for ${activeTask.title}`}
+            aria-valuetext={`${formatCountdown(remainingSeconds)} remaining of ${Math.round(
+              targetSeconds / 60
+            )} minutes`}
+            className="visually-hidden"
+          />
+          <svg
+            aria-hidden="true"
+            className="-rotate-90 w-[280px] h-[280px]"
+            viewBox="0 0 280 280"
+          >
             <circle
               cx="140"
               cy="140"
@@ -235,7 +277,10 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
             />
           </svg>
 
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
+          >
             <span
               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2 border ${
                 isRunning
@@ -271,9 +316,10 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
           type="button"
           onClick={() => onAdjustMinutes(-5)}
           disabled={isRunning || targetSeconds <= 300}
+          aria-label="Subtract 5 minutes"
           className="inline-flex items-center gap-1 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 disabled:opacity-40 disabled:pointer-events-none transition tabular"
         >
-          <Minus size={12} /> 5m
+          <Minus size={12} aria-hidden="true" /> 5m
         </button>
 
         {PRESET_MINUTES.map((mins) => {
@@ -282,6 +328,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
             <button
               key={mins}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onSetCustomMinutes(mins)}
               disabled={isRunning}
               className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold border transition tabular disabled:opacity-40 disabled:pointer-events-none ${
@@ -299,13 +346,19 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
           type="button"
           onClick={() => onAdjustMinutes(5)}
           disabled={isRunning}
+          aria-label="Add 5 minutes"
           className="inline-flex items-center gap-1 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 disabled:opacity-40 disabled:pointer-events-none transition tabular"
         >
-          <Plus size={12} /> 5m
+          <Plus size={12} aria-hidden="true" /> 5m
         </button>
 
         <form onSubmit={handleApplyCustomMinutes} className="inline-flex items-center gap-1">
+          <label htmlFor={customMinId} className="visually-hidden">
+            Custom countdown minutes
+          </label>
           <input
+            id={customMinId}
+            name="custom_minutes"
             type="number"
             min="1"
             max="480"
@@ -333,7 +386,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
             onClick={onStart}
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm px-6 py-3 shadow-glow-emerald transition active:scale-[0.99]"
           >
-            <Play size={17} fill="currentColor" />
+            <Play size={17} fill="currentColor" aria-hidden="true" />
             <span>
               {remainingSeconds < targetSeconds ? 'Resume Countdown' : 'Start Reverse Timer'}
             </span>
@@ -344,7 +397,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
             onClick={onPause}
             className="inline-flex items-center gap-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-sm px-6 py-3 shadow-glow-amber transition"
           >
-            <Pause size={17} />
+            <Pause size={17} aria-hidden="true" />
             <span>Pause Timer</span>
           </button>
         )}
@@ -352,34 +405,44 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
         <button
           type="button"
           onClick={() => onReset()}
-          title="Reset to task planned duration"
           className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 font-semibold text-xs px-4 py-3 transition"
         >
-          <RotateCcw size={15} />
+          <RotateCcw size={15} aria-hidden="true" />
           <span>Reset ({activeTask.planned_duration_minutes}m)</span>
         </button>
       </div>
 
       {/* Session Notes & Save Controls */}
       <div className="border-t border-zinc-800/80 pt-4 flex flex-col gap-3">
-        <input
-          type="text"
-          placeholder="Session focus note (optional)..."
-          value={sessionNotes}
-          onChange={(e) => onChangeNotes(e.target.value)}
-          className="w-full rounded-xl bg-zinc-950/90 border border-zinc-800 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition"
-        />
+        <div>
+          <label htmlFor={sessionNoteId} className="visually-hidden">
+            Session focus note
+          </label>
+          <input
+            id={sessionNoteId}
+            name="session_notes"
+            type="text"
+            placeholder="Session focus note (optional)..."
+            value={sessionNotes}
+            onChange={(e) => onChangeNotes(e.target.value)}
+            className="w-full rounded-xl bg-zinc-950/90 border border-zinc-800 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition"
+          />
+        </div>
 
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <label className="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+          <div className="inline-flex items-center gap-2 text-xs text-zinc-400">
             <input
+              id={autoCompleteId}
+              name="auto_complete_task"
               type="checkbox"
               checked={autoCompleteTask}
               onChange={(e) => onToggleAutoComplete(e.target.checked)}
-              className="rounded border-zinc-700 bg-zinc-950 text-emerald-500 focus:ring-0"
+              className="rounded border-zinc-700 bg-zinc-950 text-emerald-500 focus:ring-0 cursor-pointer"
             />
-            <span>Complete task at 00:00</span>
-          </label>
+            <label htmlFor={autoCompleteId} className="cursor-pointer select-none">
+              Complete task at 00:00
+            </label>
+          </div>
 
           <div className="flex items-center gap-2">
             {elapsedSeconds > 0 && (
@@ -388,7 +451,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
                 onClick={() => void onLogProgress(false)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold px-3 py-1.5 transition tabular"
               >
-                <Save size={13} className="text-cyan-400" />
+                <Save size={13} className="text-cyan-400" aria-hidden="true" />
                 <span>Log {formatDurationHuman(elapsedSeconds)}</span>
               </button>
             )}
@@ -397,7 +460,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
               onClick={() => void onLogProgress(true)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-semibold px-3 py-1.5 transition tabular"
             >
-              <CheckCircle2 size={14} className="text-emerald-400" />
+              <CheckCircle2 size={14} className="text-emerald-400" aria-hidden="true" />
               <span>
                 Complete & Save (
                 {elapsedSeconds > 0
@@ -426,6 +489,7 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
               <button
                 key={item.id}
                 type="button"
+                aria-pressed={item.done}
                 onClick={() => void onToggleChecklistItem(activeTask, item.id)}
                 className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-left border transition ${
                   item.done
@@ -434,9 +498,9 @@ export const ReverseChronometer: React.FC<ReverseChronometerProps> = ({
                 }`}
               >
                 {item.done ? (
-                  <CheckSquare size={14} className="text-emerald-400 shrink-0" />
+                  <CheckSquare size={14} className="text-emerald-400 shrink-0" aria-hidden="true" />
                 ) : (
-                  <Square size={14} className="text-zinc-500 shrink-0" />
+                  <Square size={14} className="text-zinc-500 shrink-0" aria-hidden="true" />
                 )}
                 <span>{item.text}</span>
               </button>

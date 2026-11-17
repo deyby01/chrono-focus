@@ -54,7 +54,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       : 0;
 
   return (
-    <div
+    <article
       className={`group rounded-xl border p-4 transition-all duration-200 ${
         isActive
           ? 'bg-zinc-900/90 border-emerald-500/50 shadow-[0_0_24px_-8px_rgba(16,185,129,0.28)]'
@@ -64,15 +64,24 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       <div className="flex items-start gap-3.5">
         <button
           type="button"
+          aria-pressed={isCompleted}
+          aria-label={
+            isCompleted
+              ? `Mark "${task.title}" as pending`
+              : `Mark "${task.title}" as completed`
+          }
           onClick={() => onToggleStatus(task)}
-          title={isCompleted ? 'Mark as pending' : 'Mark as completed'}
           className={`mt-0.5 transition ${
             isCompleted
               ? 'text-emerald-400 hover:text-emerald-300'
               : 'text-zinc-600 hover:text-zinc-300'
           }`}
         >
-          {isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+          {isCompleted ? (
+            <CheckCircle2 size={20} aria-hidden="true" />
+          ) : (
+            <Circle size={20} aria-hidden="true" />
+          )}
         </button>
 
         <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -128,6 +137,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 <button
                   key={item.id}
                   type="button"
+                  aria-pressed={item.done}
                   onClick={() => onToggleChecklistItem(task, item.id)}
                   className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] border transition ${
                     item.done
@@ -135,7 +145,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                       : 'bg-zinc-950/80 border-zinc-800 text-zinc-300 hover:border-zinc-700'
                   }`}
                 >
-                  {item.done ? <CheckSquare size={12} /> : <Square size={12} />}
+                  {item.done ? (
+                    <CheckSquare size={12} aria-hidden="true" />
+                  ) : (
+                    <Square size={12} aria-hidden="true" />
+                  )}
                   <span>{item.text}</span>
                 </button>
               ))}
@@ -146,8 +160,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <div className="flex flex-col gap-1.5 pt-1">
             <div className="flex items-center justify-between text-[11px] text-zinc-400 tabular">
               <span className="inline-flex items-center gap-1">
-                <Clock size={12} className="text-zinc-500" />
-                Planned: <strong className="text-zinc-200">{formatMinutesHuman(task.planned_duration_minutes)}</strong>
+                <Clock size={12} className="text-zinc-500" aria-hidden="true" />
+                Planned:{' '}
+                <strong className="text-zinc-200">
+                  {formatMinutesHuman(task.planned_duration_minutes)}
+                </strong>
               </span>
               <span>
                 Spent:{' '}
@@ -157,7 +174,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 <span className="text-zinc-500">({progressPct}%)</span>
               </span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/70">
+            <progress
+              value={progressPct}
+              max={100}
+              aria-label={`Progress for ${task.title}`}
+              className="visually-hidden"
+            />
+            <div
+              aria-hidden="true"
+              className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/70"
+            >
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -175,35 +201,39 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <button
               type="button"
               onClick={() => onSelectForTimer(task)}
-              title="Load into reverse chronometer"
+              aria-label={
+                isActive
+                  ? `Focusing on ${task.title}`
+                  : `Focus on ${task.title}`
+              }
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 isActive
                   ? 'bg-emerald-500 text-zinc-950 shadow-glow-emerald'
                   : 'bg-zinc-100 hover:bg-white text-zinc-950'
               }`}
             >
-              <Play size={13} fill="currentColor" />
+              <Play size={13} fill="currentColor" aria-hidden="true" />
               <span>{isActive ? 'Focusing' : 'Focus'}</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => onEdit(task)}
-            title="Edit task"
+            aria-label={`Edit task ${task.title}`}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/80 transition"
           >
-            <Edit3 size={14} />
+            <Edit3 size={14} aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => onDelete(task.id)}
-            title="Delete task"
+            aria-label={`Delete task ${task.title}`}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
           >
-            <Trash2 size={14} />
+            <Trash2 size={14} aria-hidden="true" />
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };

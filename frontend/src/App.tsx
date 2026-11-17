@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
-import { Category, CreateCategoryPayload, CreateTaskPayload, Task } from './models/types';
+import React, { useState, useCallback } from 'react';
+import { flushSync } from 'react-dom';
+import {
+  ActiveView,
+  Category,
+  CreateCategoryPayload,
+  CreateTaskPayload,
+  Task,
+} from './models/types';
 import { useWorkspaceController } from './controllers/useWorkspaceController';
 import { useReverseTimerController } from './controllers/useReverseTimerController';
 import { formatCountdown } from './utils/timeFormatters';
@@ -27,6 +34,36 @@ export const App: React.FC = () => {
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [actionAlert, setActionAlert] = useState<string | null>(null);
+
+  const handleSelectView = useCallback(
+    (nextView: ActiveView) => {
+      if (nextView === workspace.activeView) return;
+
+      const docWithTransition = document as Document & {
+        startViewTransition?: (cb: () => void) => { finished: Promise<void> };
+      };
+
+      if (!docWithTransition.startViewTransition) {
+        workspace.setActiveView(nextView);
+        window.requestAnimationFrame(() => {
+          document.getElementById('main-view-heading')?.focus();
+        });
+        return;
+      }
+
+      const transition = docWithTransition.startViewTransition(() => {
+        flushSync(() => {
+          workspace.setActiveView(nextView);
+        });
+      });
+
+      transition.finished.finally(() => {
+        document.getElementById('main-view-heading')?.focus();
+      });
+    },
+    [workspace]
+  );
 
   const handleOpenNewTaskModal = (catId?: number) => {
     setEditingTask(null);
@@ -43,10 +80,7 @@ export const App: React.FC = () => {
     if (taskId) {
       await workspace.updateTask(taskId, payload);
     } else {
-      await workspace.createTask({
-        ...payload,
-        category_id: preselectedCategoryId || payload.category_id,
-      });
+      await workspace.createTask(payload);
     }
   };
 
@@ -74,10 +108,11 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteCategory = async (id: number) => {
+    setActionAlert(null);
     try {
       await workspace.deleteCategory(id);
     } catch (err) {
-      alert(
+      setActionAlert(
         err instanceof Error
           ? err.message
           : 'Cannot delete a category that still has tasks assigned.'
@@ -87,12 +122,22 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col lg:flex-row relative selection:bg-emerald-500/30">
+      <a
+        href="#main-view-heading"
+        className="visually-hidden fixed top-3 left-3 z-50 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-zinc-950 shadow-glow-emerald"
+      >
+        Skip to main content
+      </a>
+
       {/* Subtle Ambient Top Shine */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_70%_50%_at_50%_-15%,rgba(16,185,129,0.08),rgba(99,102,241,0.04),transparent)] z-0" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_70%_50%_at_50%_-15%,rgba(16,185,129,0.08),rgba(99,102,241,0.04),transparent)] z-0"
+      />
 
       <SidebarNav
         activeView={workspace.activeView}
-        onSelectView={workspace.setActiveView}
+        onSelectView={handleSelectView}
         selectedDate={workspace.selectedDate}
         onSelectDate={workspace.setSelectedDate}
         dailyResume={workspace.dailyResume}
@@ -104,7 +149,10 @@ export const App: React.FC = () => {
 
       <main className="flex-1 min-w-0 px-6 py-7 lg:px-10 lg:py-8 max-w-[1440px] w-full mx-auto relative z-10">
         {workspace.error && (
-          <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div
+            role="alert"
+            className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          >
             <span>{workspace.error}</span>
             <button
               type="button"
@@ -112,6 +160,22 @@ export const App: React.FC = () => {
               onClick={workspace.refresh}
             >
               Retry Connection
+            </button>
+          </div>
+        )}
+
+        {actionAlert && (
+          <div
+            role="alert"
+            className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-xs text-amber-200"
+          >
+            <span>{actionAlert}</span>
+            <button
+              type="button"
+              onClick={() => setActionAlert(null)}
+              className="rounded-lg border border-amber-400/30 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-100 hover:bg-amber-500/30 transition"
+            >
+              Dismiss
             </button>
           </div>
         )}
@@ -182,6 +246,7 @@ export const App: React.FC = () => {
         onClose={() => setIsTaskModalOpen(false)}
         categories={workspace.categories}
         defaultDate={workspace.selectedDate}
+        defaultCategoryId={preselectedCategoryId}
         editingTask={editingTask}
         onSubmit={handleSaveTask}
       />

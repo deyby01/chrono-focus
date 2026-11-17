@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import {
   Timer,
   CalendarCheck2,
@@ -35,6 +35,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   onOpenNewTaskModal,
   onOpenNewCategoryModal,
 }) => {
+  const dateInputId = useId();
+  const pulseProgressId = useId();
+
   const navItems: Array<{
     id: ActiveView;
     label: string;
@@ -45,25 +48,25 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       id: 'focus',
       label: 'Focus Studio',
       subtitle: 'Reverse chronometer & queue',
-      icon: <Timer size={18} />,
+      icon: <Timer size={18} aria-hidden="true" />,
     },
     {
       id: 'schedule',
       label: 'Schedule & Tasks',
       subtitle: 'Time-blocks & checklist',
-      icon: <CalendarCheck2 size={18} />,
+      icon: <CalendarCheck2 size={18} aria-hidden="true" />,
     },
     {
       id: 'categories',
       label: 'Task Types',
       subtitle: 'Courses, projects & hobbies',
-      icon: <Layers size={18} />,
+      icon: <Layers size={18} aria-hidden="true" />,
     },
     {
       id: 'analytics',
       label: 'Daily Resume & Best',
       subtitle: 'Records & time analytics',
-      icon: <BarChart3 size={18} />,
+      icon: <BarChart3 size={18} aria-hidden="true" />,
     },
   ];
 
@@ -74,16 +77,25 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     plannedSec > 0 ? Math.min(100, Math.round((focusedSec / plannedSec) * 100)) : 0;
 
   return (
-    <aside className="w-full lg:w-[272px] shrink-0 bg-zinc-950/90 border-b lg:border-b-0 lg:border-r border-zinc-800/80 px-4 py-6 flex flex-col gap-6 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto z-20 backdrop-blur-xl">
+    <aside
+      aria-label="Workspace sidebar"
+      className="w-full lg:w-[272px] shrink-0 bg-zinc-950/90 border-b lg:border-b-0 lg:border-r border-zinc-800/80 px-4 py-6 flex flex-col gap-6 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto z-20 backdrop-blur-xl"
+    >
       {/* Brand Identity */}
       <div className="flex items-center gap-3 px-2">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-indigo-500 flex items-center justify-center text-zinc-950 shadow-glow-emerald">
+        <div
+          aria-hidden="true"
+          className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-indigo-500 flex items-center justify-center text-zinc-950 shadow-glow-emerald"
+        >
           <Timer size={20} strokeWidth={2.4} />
         </div>
         <div>
           <h1 className="text-base font-bold tracking-tight text-zinc-50 flex items-center gap-2">
             ChronoFocus
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+            <span
+              aria-hidden="true"
+              className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"
+            />
           </h1>
           <p className="text-[11px] text-zinc-500 font-medium">Minimalist Time & Focus OS</p>
         </div>
@@ -96,7 +108,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           onClick={onOpenNewTaskModal}
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs py-2.5 px-4 transition-all shadow-[0_0_20px_rgba(255,255,255,0.12)] active:scale-[0.99]"
         >
-          <Plus size={15} strokeWidth={2.5} />
+          <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
           <span>Schedule New Task</span>
         </button>
         <button
@@ -104,7 +116,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           onClick={onOpenNewCategoryModal}
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 text-zinc-300 hover:text-zinc-100 border border-zinc-800/90 hover:border-zinc-700 font-medium text-xs py-2 px-4 transition-all"
         >
-          <Layers size={14} className="text-emerald-400" />
+          <Layers size={14} className="text-emerald-400" aria-hidden="true" />
           <span>New Task Type</span>
         </button>
       </div>
@@ -112,9 +124,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       {/* Active Schedule Date Selector */}
       <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-3 shadow-glass-inset">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          <label
+            htmlFor={dateInputId}
+            className="text-[10px] font-bold uppercase tracking-widest text-zinc-500"
+          >
             Schedule Date
-          </span>
+          </label>
           {selectedDate !== getLocalDateString() && (
             <button
               type="button"
@@ -126,6 +141,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           )}
         </div>
         <input
+          id={dateInputId}
+          name="schedule_date"
           type="date"
           value={selectedDate}
           onChange={(e) => onSelectDate(e.target.value)}
@@ -134,7 +151,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex flex-col gap-1.5 flex-1">
+      <nav aria-label="Primary" className="flex flex-col gap-1.5 flex-1">
         <span className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
           Workspace
         </span>
@@ -144,6 +161,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             <button
               key={item.id}
               type="button"
+              aria-current={isActive ? 'page' : undefined}
               onClick={() => onSelectView(item.id)}
               className={`group flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
                 isActive
@@ -177,14 +195,26 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       {/* Daily Execution Pulse Footer Card */}
       <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800/80 p-3.5 flex flex-col gap-3 shadow-glass-inset">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-            <Flame size={14} className="text-amber-400" />
+          <label
+            htmlFor={pulseProgressId}
+            className="font-semibold text-zinc-200 flex items-center gap-1.5"
+          >
+            <Flame size={14} className="text-amber-400" aria-hidden="true" />
             <span>Daily Pulse</span>
-          </span>
+          </label>
           <span className="font-mono font-bold text-emerald-400 tabular">{dailyBudgetPct}%</span>
         </div>
 
-        <div className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/60">
+        <progress
+          id={pulseProgressId}
+          value={dailyBudgetPct}
+          max={100}
+          className="visually-hidden"
+        />
+        <div
+          aria-hidden="true"
+          className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/60"
+        >
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 transition-all duration-300"
             style={{ width: `${dailyBudgetPct}%` }}
@@ -194,7 +224,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg bg-zinc-950/90 border border-zinc-800/70 px-2.5 py-2">
             <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-              <Clock size={11} className="text-cyan-400" /> Focused
+              <Clock size={11} className="text-cyan-400" aria-hidden="true" /> Focused
             </span>
             <p className="text-xs font-bold text-zinc-100 mt-0.5 tabular">
               {formatDurationHuman(focusedSec)}
@@ -202,7 +232,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           </div>
           <div className="rounded-lg bg-zinc-950/90 border border-zinc-800/70 px-2.5 py-2">
             <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-              <CheckCircle2 size={11} className="text-emerald-400" /> Done
+              <CheckCircle2 size={11} className="text-emerald-400" aria-hidden="true" /> Done
             </span>
             <p className="text-xs font-bold text-zinc-100 mt-0.5 tabular">
               {summary?.completedTasks ?? 0}/{summary?.totalTasks ?? 0}

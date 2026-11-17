@@ -56,7 +56,12 @@ export const IconRenderer: React.FC<IconRendererProps> = ({
   className = '',
   color,
 }) => {
-  const props = { size, className, style: color ? { color } : undefined };
+  const props = {
+    size,
+    className,
+    style: color ? { color } : undefined,
+    'aria-hidden': true as const,
+  };
 
   switch (name) {
     case 'graduation-cap':
@@ -87,4 +92,3 @@ export const IconRenderer: React.FC<IconRendererProps> = ({
       return <Folder {...props} />;
   }
 };
-

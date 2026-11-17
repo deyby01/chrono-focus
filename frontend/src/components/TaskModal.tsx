@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import {
   Category,
@@ -8,12 +8,17 @@ import {
   TaskPriority,
   TaskStatus,
 } from '../models/types';
+import {
+  closeTopLayerDialog,
+  isClickOutsideDialogContent,
+} from '../utils/topLayerDialog';
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   categories: Category[];
   defaultDate: string;
+  defaultCategoryId?: number;
   editingTask: Task | null;
   onSubmit: (payload: CreateTaskPayload, taskId?: number) => Promise<void>;
 }
@@ -23,9 +28,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   onClose,
   categories,
   defaultDate,
+  defaultCategoryId,
   editingTask,
   onSubmit,
 }) => {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const pressedOutsideRef = useRef<boolean>(false);
+  const baseId = useId();
+
+  const headingId = `${baseId}-heading`;
+  const titleInputId = `${baseId}-title`;
+  const categorySelectId = `${baseId}-category`;
+  const plannedInputId = `${baseId}-planned`;
+  const dateInputId = `${baseId}-date`;
+  const timeInputId = `${baseId}-time`;
+  const prioritySelectId = `${baseId}-priority`;
+  const descriptionInputId = `${baseId}-description`;
+  const checklistInputId = `${baseId}-checklist`;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
@@ -53,7 +73,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     } else {
       setTitle('');
       setDescription('');
-      setCategoryId(categories[0]?.id || 1);
+      setCategoryId(defaultCategoryId || categories[0]?.id || 1);
       setPriority('medium');
       setStatus('pending');
       setPlannedMinutes(45);
@@ -63,9 +83,28 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
     setNewStepText('');
     setFormError(null);
-  }, [editingTask, categories, defaultDate, isOpen]);
+  }, [editingTask, categories, defaultDate, defaultCategoryId, isOpen]);
 
-  if (!isOpen) return null;
+  const requestAnimatedClose = useCallback(async () => {
+    const dialog = dialogRef.current;
+    if (dialog && dialog.open) {
+      await closeTopLayerDialog(dialog);
+    }
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    } else if (dialog.open) {
+      void closeTopLayerDialog(dialog);
+    }
+  }, [isOpen]);
 
   const handleAddChecklistStep = () => {
     const trimmed = newStepText.trim();
@@ -108,7 +147,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         },
         editingTask?.id
       );
-      onClose();
+      await requestAnimatedClose();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to save task');
     } finally {
@@ -117,46 +156,95 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-md p-4"
-      onClick={onClose}
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={headingId}
+      className="chrono-dialog"
+      {...({ closedby: 'any' } as Record<string, unknown>)}
+      onCancel={(e) => {
+        e.preventDefault();
+        void requestAnimatedClose();
+      }}
+      onClose={() => {
+        if (dialogRef.current) {
+          dialogRef.current.returnValue = '';
+        }
+        if (isOpen) {
+          onClose();
+        }
+      }}
+      onPointerDown={(e) => {
+        if (
+          typeof HTMLDialogElement !== 'undefined' &&
+          !('closedBy' in HTMLDialogElement.prototype) &&
+          dialogRef.current
+        ) {
+          pressedOutsideRef.current = isClickOutsideDialogContent(
+            e.nativeEvent,
+            dialogRef.current
+          );
+        }
+      }}
+      onPointerUp={(e) => {
+        if (
+          typeof HTMLDialogElement !== 'undefined' &&
+          !('closedBy' in HTMLDialogElement.prototype) &&
+          dialogRef.current
+        ) {
+          if (
+            pressedOutsideRef.current &&
+            isClickOutsideDialogContent(e.nativeEvent, dialogRef.current)
+          ) {
+            void requestAnimatedClose();
+          }
+          pressedOutsideRef.current = false;
+        }
+      }}
     >
-      <div
-        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl flex flex-col gap-5"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl flex flex-col gap-5 text-zinc-100">
         <div className="flex items-start justify-between gap-4 border-b border-zinc-800/80 pb-4">
           <div>
-            <h3 className="text-base font-bold text-zinc-50">
+            <h2 id={headingId} className="text-base font-bold text-zinc-50">
               {editingTask ? 'Edit Scheduled Task' : 'Schedule New Task'}
-            </h3>
+            </h2>
             <p className="text-xs text-zinc-400 mt-0.5">
               Define what you will complete, its category type, and how much time you will invest.
             </p>
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => void requestAnimatedClose()}
+            aria-label="Close task dialog"
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {formError && (
-            <div className="rounded-xl bg-rose-500/15 border border-rose-500/35 px-3.5 py-2.5 text-xs text-rose-200">
+            <div
+              role="alert"
+              className="rounded-xl bg-rose-500/15 border border-rose-500/35 px-3.5 py-2.5 text-xs text-rose-200"
+            >
               {formError}
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-300">Task / Learning Title *</label>
+            <label htmlFor={titleInputId} className="text-xs font-semibold text-zinc-300">
+              Task / Learning Title <span aria-hidden="true">*</span>
+            </label>
             <input
+              id={titleInputId}
+              name="title"
               type="text"
               placeholder="e.g., PostgreSQL Indexing Course Module 5, Build React Dashboard..."
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (formError) setFormError(null);
+              }}
               required
               autoFocus
               className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3.5 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/60 transition"
@@ -165,8 +253,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">Task Type / Category *</label>
+              <label htmlFor={categorySelectId} className="text-xs font-semibold text-zinc-300">
+                Task Type / Category <span aria-hidden="true">*</span>
+              </label>
               <select
+                id={categorySelectId}
+                name="category_id"
                 value={categoryId}
                 onChange={(e) => setCategoryId(Number(e.target.value))}
                 className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-emerald-500/60 transition"
@@ -180,10 +272,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">
-                Planned Time (Minutes) *
+              <label htmlFor={plannedInputId} className="text-xs font-semibold text-zinc-300">
+                Planned Time (Minutes) <span aria-hidden="true">*</span>
               </label>
               <input
+                id={plannedInputId}
+                name="planned_duration_minutes"
                 type="number"
                 min="1"
                 max="600"
@@ -192,11 +286,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 required
                 className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs font-mono text-zinc-100 focus:outline-none focus:border-emerald-500/60 tabular"
               />
-              <div className="flex flex-wrap gap-1 pt-0.5">
+              <div className="flex flex-wrap gap-1 pt-0.5" role="group" aria-label="Quick duration presets">
                 {[25, 45, 60, 90, 120].map((m) => (
                   <button
                     key={m}
                     type="button"
+                    aria-pressed={plannedMinutes === m}
                     onClick={() => setPlannedMinutes(m)}
                     className={`px-2 py-0.5 rounded-md text-[11px] font-mono border transition ${
                       plannedMinutes === m
@@ -213,8 +308,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">Scheduled Date</label>
+              <label htmlFor={dateInputId} className="text-xs font-semibold text-zinc-300">
+                Scheduled Date
+              </label>
               <input
+                id={dateInputId}
+                name="scheduled_date"
                 type="date"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
@@ -224,8 +323,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">Time Slot (Optional)</label>
+              <label htmlFor={timeInputId} className="text-xs font-semibold text-zinc-300">
+                Time Slot (Optional)
+              </label>
               <input
+                id={timeInputId}
+                name="scheduled_start_time"
                 type="time"
                 value={scheduledStartTime}
                 onChange={(e) => setScheduledStartTime(e.target.value)}
@@ -234,8 +337,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-300">Priority</label>
+              <label htmlFor={prioritySelectId} className="text-xs font-semibold text-zinc-300">
+                Priority
+              </label>
               <select
+                id={prioritySelectId}
+                name="priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
                 className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-emerald-500/60"
@@ -249,24 +356,27 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-300">
+            <label htmlFor={descriptionInputId} className="text-xs font-semibold text-zinc-300">
               Description / Learning Objectives
             </label>
             <textarea
+              id={descriptionInputId}
+              name="description"
               rows={2}
               placeholder="Specific goals, links, chapters, or deliverables so you stay focused..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3.5 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/60"
+              className="auto-grow-textarea w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3.5 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/60"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-zinc-300">
+            <label htmlFor={checklistInputId} className="text-xs font-semibold text-zinc-300">
               Action Checklist / Sub-steps
             </label>
             <div className="flex gap-2">
               <input
+                id={checklistInputId}
                 type="text"
                 placeholder="Add a concrete step (e.g., Complete exercise 1)..."
                 value={newStepText}
@@ -274,6 +384,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    if (e.nativeEvent.isComposing || e.keyCode === 229) {
+                      return;
+                    }
                     handleAddChecklistStep();
                   }
                 }}
@@ -284,14 +397,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 onClick={handleAddChecklistStep}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 px-3.5 py-2 text-xs font-semibold text-zinc-200 transition"
               >
-                <Plus size={14} /> Add Step
+                <Plus size={14} aria-hidden="true" /> Add Step
               </button>
             </div>
 
             {checklist.length > 0 && (
-              <div className="flex flex-col gap-1.5 pt-1">
+              <ul className="flex flex-col gap-1.5 pt-1" role="list">
                 {checklist.map((item) => (
-                  <div
+                  <li
                     key={item.id}
                     className="flex items-center justify-between rounded-lg bg-zinc-950 border border-zinc-800 px-3 py-1.5 text-xs text-zinc-300"
                   >
@@ -299,20 +412,21 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveStep(item.id)}
-                      className="text-zinc-500 hover:text-rose-400 transition"
+                      aria-label={`Remove step ${item.text}`}
+                      className="text-zinc-500 hover:text-rose-400 transition p-1"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={13} aria-hidden="true" />
                     </button>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
 
           <div className="flex items-center justify-end gap-2.5 border-t border-zinc-800/80 pt-4 mt-1">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => void requestAnimatedClose()}
               className="rounded-xl bg-zinc-800/80 hover:bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300 transition"
             >
               Cancel
@@ -327,6 +441,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 };

@@ -79,7 +79,11 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
           <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
             Daily Execution Studio
           </span>
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-50 mt-1">
+          <h2
+            id="main-view-heading"
+            tabIndex={-1}
+            className="text-2xl font-bold tracking-tight text-zinc-50 mt-1 focus:outline-none"
+          >
             Focus Workspace & Reverse Chronometer
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
@@ -92,7 +96,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
           onClick={onOpenNewTaskModal}
           className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs px-4 py-2.5 shadow-[0_0_20px_rgba(255,255,255,0.12)] transition shrink-0"
         >
-          <Plus size={15} strokeWidth={2.5} />
+          <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
           <span>Add Task to Schedule</span>
         </button>
       </header>
@@ -104,7 +108,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
               Focused Time Today
             </span>
-            <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400">
+            <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400" aria-hidden="true">
               <Clock size={15} />
             </span>
           </div>
@@ -112,7 +116,10 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
             {formatDurationHuman(summary?.focusedSeconds || 0)}
           </div>
           <div className="text-xs text-zinc-400 tabular">
-            Planned budget: <span className="text-zinc-300">{formatDurationHuman(summary?.plannedSeconds || 0)}</span>
+            Planned budget:{' '}
+            <span className="text-zinc-300">
+              {formatDurationHuman(summary?.plannedSeconds || 0)}
+            </span>
           </div>
         </div>
 
@@ -121,7 +128,10 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
               Tasks Completed Today
             </span>
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span
+              className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400"
+              aria-hidden="true"
+            >
               <CheckCircle2 size={15} />
             </span>
           </div>
@@ -139,7 +149,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
               My Best Focus Session
             </span>
-            <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+            <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400" aria-hidden="true">
               <Trophy size={15} />
             </span>
           </div>
@@ -160,7 +170,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
               Peak Productivity Hour
             </span>
-            <span className="p-1.5 rounded-lg bg-violet-500/10 text-violet-400">
+            <span className="p-1.5 rounded-lg bg-violet-500/10 text-violet-400" aria-hidden="true">
               <Zap size={15} />
             </span>
           </div>
@@ -216,7 +226,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
                   Daily Roadmap
                 </span>
                 <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2 mt-0.5">
-                  <Calendar size={15} className="text-emerald-400" />
+                  <Calendar size={15} className="text-emerald-400" aria-hidden="true" />
                   <span>Scheduled Queue ({schedule.length})</span>
                 </h3>
               </div>
@@ -233,7 +243,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
                   onClick={onOpenNewTaskModal}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold px-3.5 py-2 transition"
                 >
-                  <Plus size={14} /> Schedule a Task
+                  <Plus size={14} aria-hidden="true" /> Schedule a Task
                 </button>
               </div>
             ) : (
@@ -262,7 +272,7 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
                   Session Timeline
                 </span>
                 <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2 mt-0.5">
-                  <History size={15} className="text-cyan-400" />
+                  <History size={15} className="text-cyan-400" aria-hidden="true" />
                   <span>Completed Focus Sprints ({sessions.length})</span>
                 </h3>
               </div>
@@ -273,13 +283,14 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
                 No focus sessions recorded on this date yet.
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2" role="list">
                 {sessions.map((session) => (
-                  <div
+                  <li
                     key={session.id}
                     className="flex items-center gap-3 rounded-xl bg-zinc-950/70 border border-zinc-800/70 px-3.5 py-2.5"
                   >
                     <span
+                      aria-hidden="true"
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{
                         backgroundColor: session.category_color,
@@ -310,14 +321,14 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onDeleteSession(session.id)}
-                      title="Delete session log"
+                      aria-label={`Delete focus session for ${session.task_title}`}
                       className="p-1.5 rounded-lg text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={14} aria-hidden="true" />
                     </button>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </div>
