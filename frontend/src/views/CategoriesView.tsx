@@ -3,6 +3,7 @@ import { Plus, Edit3, Trash2, Clock, CheckCircle2, Target } from 'lucide-react';
 import { Category } from '../models/types';
 import { formatDurationHuman, formatMinutesHuman } from '../utils/timeFormatters';
 import { IconRenderer } from '../components/IconRenderer';
+import { Button, IconButton, ViewHeader } from '../components/ui';
 
 interface CategoriesViewProps {
   categories: Category[];
@@ -21,32 +22,18 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-zinc-800/80">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">
-            Task Taxonomy & Daily Budgets
-          </span>
-          <h2
-            id="main-view-heading"
-            tabIndex={-1}
-            className="text-2xl font-bold tracking-tight text-zinc-50 mt-1 focus:outline-none"
-          >
-            Task Types, Learnings & Hobbies
-          </h2>
-          <p className="text-xs text-zinc-400 mt-1">
-            Register custom task categories (courses, software projects, hobbies, reading) and set
-            daily time targets for each area of your life.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenNewCategoryModal}
-          className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs px-4 py-2.5 shadow-[0_0_20px_rgba(255,255,255,0.12)] transition shrink-0"
-        >
-          <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
-          <span>Register New Task Type</span>
-        </button>
-      </header>
+      <ViewHeader
+        eyebrow="Task Taxonomy & Daily Budgets"
+        eyebrowColor="text-violet-400"
+        title="Task Types, Learnings & Hobbies"
+        description="Register custom task categories (courses, software projects, hobbies, reading) and set daily time targets for each area of your life."
+        action={
+          <Button variant="primary" onClick={onOpenNewCategoryModal}>
+            <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
+            <span>Register New Task Type</span>
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {categories.map((cat) => {
@@ -82,22 +69,20 @@ export const CategoriesView: React.FC<CategoriesViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
+                  <IconButton
+                    tone="neutral"
                     onClick={() => onEditCategory(cat)}
                     aria-label={`Edit task type ${cat.name}`}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/80 transition"
                   >
                     <Edit3 size={14} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
+                  </IconButton>
+                  <IconButton
+                    tone="danger"
                     onClick={() => onDeleteCategory(cat.id)}
                     aria-label={`Delete task type ${cat.name}`}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
                   >
                     <Trash2 size={14} aria-hidden="true" />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
 

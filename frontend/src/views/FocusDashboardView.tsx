@@ -18,6 +18,7 @@ import {
 } from '../utils/timeFormatters';
 import { ReverseChronometer } from '../components/ReverseChronometer';
 import { TaskCard } from '../components/TaskCard';
+import { Button, IconButton, ViewHeader } from '../components/ui';
 
 interface FocusDashboardViewProps {
   selectedDate: string;
@@ -73,33 +74,18 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Minimalist Header */}
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-zinc-800/80">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-            Daily Execution Studio
-          </span>
-          <h2
-            id="main-view-heading"
-            tabIndex={-1}
-            className="text-2xl font-bold tracking-tight text-zinc-50 mt-1 focus:outline-none"
-          >
-            Focus Workspace & Reverse Chronometer
-          </h2>
-          <p className="text-xs text-zinc-400 mt-1">
-            {formatReadableDate(selectedDate)} — Stay anchored to one task at a time and track every
-            minute.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenNewTaskModal}
-          className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs px-4 py-2.5 shadow-[0_0_20px_rgba(255,255,255,0.12)] transition shrink-0"
-        >
-          <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
-          <span>Add Task to Schedule</span>
-        </button>
-      </header>
+      <ViewHeader
+        eyebrow="Daily Execution Studio"
+        eyebrowColor="text-emerald-400"
+        title="Focus Workspace & Reverse Chronometer"
+        description={`${formatReadableDate(selectedDate)} — Stay anchored to one task at a time and track every minute.`}
+        action={
+          <Button variant="primary" onClick={onOpenNewTaskModal}>
+            <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
+            <span>Add Task to Schedule</span>
+          </Button>
+        }
+      />
 
       {/* 4 KPI Bento Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -238,13 +224,13 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
             {schedule.length === 0 ? (
               <div className="py-10 text-center flex flex-col items-center gap-3 text-zinc-400 text-xs">
                 <p>No tasks scheduled for {formatReadableDate(selectedDate)}.</p>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={onOpenNewTaskModal}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold px-3.5 py-2 transition"
+                  className="gap-1.5 px-3.5 py-2 text-zinc-100"
                 >
                   <Plus size={14} aria-hidden="true" /> Schedule a Task
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -318,14 +304,13 @@ export const FocusDashboardView: React.FC<FocusDashboardViewProps> = ({
                         )}
                       </div>
                     </div>
-                    <button
-                      type="button"
+                    <IconButton
+                      tone="danger"
                       onClick={() => onDeleteSession(session.id)}
                       aria-label={`Delete focus session for ${session.task_title}`}
-                      className="p-1.5 rounded-lg text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition"
                     >
                       <Trash2 size={14} aria-hidden="true" />
-                    </button>
+                    </IconButton>
                   </li>
                 ))}
               </ul>

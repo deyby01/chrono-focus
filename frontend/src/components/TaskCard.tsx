@@ -12,6 +12,7 @@ import {
 import { Task } from '../models/types';
 import { formatDurationHuman, formatMinutesHuman } from '../utils/timeFormatters';
 import { IconRenderer } from './IconRenderer';
+import { IconButton, ProgressBar } from './ui';
 
 interface TaskCardProps {
   task: Task;
@@ -174,24 +175,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 <span className="text-zinc-500">({progressPct}%)</span>
               </span>
             </div>
-            <progress
+            <ProgressBar
               value={progressPct}
-              max={100}
-              aria-label={`Progress for ${task.title}`}
-              className="visually-hidden"
+              label={`Progress for ${task.title}`}
+              color={isCompleted ? '#10B981' : task.category_color}
             />
-            <div
-              aria-hidden="true"
-              className="h-1.5 w-full rounded-full bg-zinc-950 overflow-hidden border border-zinc-800/70"
-            >
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${progressPct}%`,
-                  backgroundColor: isCompleted ? '#10B981' : task.category_color,
-                }}
-              />
-            </div>
           </div>
         </div>
 
@@ -216,22 +204,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <span>{isActive ? 'Focusing' : 'Focus'}</span>
             </button>
           )}
-          <button
-            type="button"
+          <IconButton
+            tone="neutral"
             onClick={() => onEdit(task)}
             aria-label={`Edit task ${task.title}`}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/80 transition"
           >
             <Edit3 size={14} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
+            tone="danger"
             onClick={() => onDelete(task.id)}
             aria-label={`Delete task ${task.title}`}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
           >
             <Trash2 size={14} aria-hidden="true" />
-          </button>
+          </IconButton>
         </div>
       </div>
     </article>
