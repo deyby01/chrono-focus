@@ -1,14 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { flushSync } from 'react-dom';
-import {
-  ActiveView,
-  Category,
-  CreateCategoryPayload,
-  CreateTaskPayload,
-  Task,
-} from './models/types';
+import React, { useCallback } from 'react';
+import { Task } from './models/types';
 import { useWorkspaceController } from './controllers/useWorkspaceController';
 import { useReverseTimerController } from './controllers/useReverseTimerController';
+import { useViewTransitionRouter } from './controllers/useViewTransitionRouter';
+import { useTaskModalController } from './controllers/useTaskModalController';
+import { useCategoryModalController } from './controllers/useCategoryModalController';
 import { formatCountdown } from './utils/timeFormatters';
 import { AlertBanner } from './components/ui';
 import { SidebarNav } from './components/SidebarNav';
@@ -27,99 +23,18 @@ export const App: React.FC = () => {
     onSessionLogged: workspace.logFocusSession,
   });
 
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [preselectedCategoryId, setPreselectedCategoryId] = useState<number | undefined>(
-    undefined
-  );
+  const selectView = useViewTransitionRouter(workspace.activeView, workspace.setActiveView);
 
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [actionAlert, setActionAlert] = useState<string | null>(null);
+  const taskModal = useTaskModalController(workspace);
+  const categoryModal = useCategoryModalController(workspace);
 
-  const handleSelectView = useCallback(
-    (nextView: ActiveView) => {
-      if (nextView === workspace.activeView) return;
-
-      const docWithTransition = document as Document & {
-        startViewTransition?: (cb: () => void) => { finished: Promise<void> };
-      };
-
-      if (!docWithTransition.startViewTransition) {
-        workspace.setActiveView(nextView);
-        window.requestAnimationFrame(() => {
-          document.getElementById('main-view-heading')?.focus();
-        });
-        return;
-      }
-
-      const transition = docWithTransition.startViewTransition(() => {
-        flushSync(() => {
-          workspace.setActiveView(nextView);
-        });
-      });
-
-      transition.finished.finally(() => {
-        document.getElementById('main-view-heading')?.focus();
-      });
+  const toggleTaskStatus = useCallback(
+    (task: Task) => {
+      const nextStatus = task.status === 'completed' ? 'pending' : 'completed';
+      void workspace.updateTask(task.id, { status: nextStatus });
     },
     [workspace]
   );
-
-  const handleOpenNewTaskModal = (catId?: number) => {
-    setEditingTask(null);
-    setPreselectedCategoryId(catId);
-    setIsTaskModalOpen(true);
-  };
-
-  const handleOpenEditTaskModal = (task: Task) => {
-    setEditingTask(task);
-    setIsTaskModalOpen(true);
-  };
-
-  const handleSaveTask = async (payload: CreateTaskPayload, taskId?: number) => {
-    if (taskId) {
-      await workspace.updateTask(taskId, payload);
-    } else {
-      await workspace.createTask(payload);
-    }
-  };
-
-  const handleToggleTaskStatus = async (task: Task) => {
-    const nextStatus = task.status === 'completed' ? 'pending' : 'completed';
-    await workspace.updateTask(task.id, { status: nextStatus });
-  };
-
-  const handleOpenNewCategoryModal = () => {
-    setEditingCategory(null);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleOpenEditCategoryModal = (category: Category) => {
-    setEditingCategory(category);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleSaveCategory = async (payload: CreateCategoryPayload, categoryId?: number) => {
-    if (categoryId) {
-      await workspace.updateCategory(categoryId, payload);
-    } else {
-      await workspace.createCategory(payload);
-    }
-  };
-
-  const handleDeleteCategory = async (id: number) => {
-    setActionAlert(null);
-    try {
-      await workspace.deleteCategory(id);
-    } catch (err) {
-      setActionAlert(
-        err instanceof Error
-          ? err.message
-          : 'Cannot delete a category that still has tasks assigned.'
-      );
-    }
-  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col lg:flex-row relative selection:bg-emerald-500/30">
@@ -138,14 +53,14 @@ export const App: React.FC = () => {
 
       <SidebarNav
         activeView={workspace.activeView}
-        onSelectView={handleSelectView}
+        onSelectView={selectView}
         selectedDate={workspace.selectedDate}
         onSelectDate={workspace.setSelectedDate}
         dailyResume={workspace.dailyResume}
         isTimerRunning={timerState.isRunning}
         timerFormatted={formatCountdown(timerState.remainingSeconds)}
-        onOpenNewTaskModal={() => handleOpenNewTaskModal()}
-        onOpenNewCategoryModal={handleOpenNewCategoryModal}
+        onOpenNewTaskModal={() => taskModal.openNew()}
+        onOpenNewCategoryModal={categoryModal.openNew}
       />
 
       <main className="flex-1 min-w-0 px-6 py-7 lg:px-10 lg:py-8 max-w-[1440px] w-full mx-auto relative z-10">
@@ -158,12 +73,12 @@ export const App: React.FC = () => {
           />
         )}
 
-        {actionAlert && (
+        {categoryModal.actionAlert && (
           <AlertBanner
             tone="warning"
-            message={actionAlert}
+            message={categoryModal.actionAlert}
             actionLabel="Dismiss"
-            onAction={() => setActionAlert(null)}
+            onAction={categoryModal.dismissAlert}
           />
         )}
 
@@ -175,12 +90,12 @@ export const App: React.FC = () => {
             activeTask={workspace.activeTask}
             onSelectTask={workspace.setActiveTask}
             timerState={timerState}
-            onToggleTaskStatus={(task) => void handleToggleTaskStatus(task)}
+            onToggleTaskStatus={toggleTaskStatus}
             onToggleChecklistItem={workspace.toggleChecklistItem}
-            onEditTask={handleOpenEditTaskModal}
+            onEditTask={taskModal.openEdit}
             onDeleteTask={(id) => void workspace.deleteTask(id)}
             onDeleteSession={(id) => void workspace.deleteFocusSession(id)}
-            onOpenNewTaskModal={() => handleOpenNewTaskModal()}
+            onOpenNewTaskModal={() => taskModal.openNew()}
           />
         )}
 
@@ -198,23 +113,23 @@ export const App: React.FC = () => {
             onChangeSearchQuery={workspace.setSearchQuery}
             activeTask={workspace.activeTask}
             onLaunchInChronometer={workspace.launchTaskInChronometer}
-            onToggleTaskStatus={(task) => void handleToggleTaskStatus(task)}
+            onToggleTaskStatus={toggleTaskStatus}
             onToggleChecklistItem={(task, itemId) =>
               void workspace.toggleChecklistItem(task, itemId)
             }
-            onEditTask={handleOpenEditTaskModal}
+            onEditTask={taskModal.openEdit}
             onDeleteTask={(id) => void workspace.deleteTask(id)}
-            onOpenNewTaskModal={() => handleOpenNewTaskModal()}
+            onOpenNewTaskModal={() => taskModal.openNew()}
           />
         )}
 
         {workspace.activeView === 'categories' && (
           <CategoriesView
             categories={workspace.categories}
-            onOpenNewCategoryModal={handleOpenNewCategoryModal}
-            onEditCategory={handleOpenEditCategoryModal}
-            onDeleteCategory={(id) => void handleDeleteCategory(id)}
-            onOpenTaskForCategory={(catId) => handleOpenNewTaskModal(catId)}
+            onOpenNewCategoryModal={categoryModal.openNew}
+            onEditCategory={categoryModal.openEdit}
+            onDeleteCategory={(id) => void categoryModal.remove(id)}
+            onOpenTaskForCategory={(catId) => taskModal.openNew(catId)}
           />
         )}
 
@@ -229,20 +144,20 @@ export const App: React.FC = () => {
       </main>
 
       <TaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => setIsTaskModalOpen(false)}
+        isOpen={taskModal.isOpen}
+        onClose={taskModal.close}
         categories={workspace.categories}
         defaultDate={workspace.selectedDate}
-        defaultCategoryId={preselectedCategoryId}
-        editingTask={editingTask}
-        onSubmit={handleSaveTask}
+        defaultCategoryId={taskModal.preselectedCategoryId}
+        editingTask={taskModal.editingTask}
+        onSubmit={taskModal.save}
       />
 
       <CategoryModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        editingCategory={editingCategory}
-        onSubmit={handleSaveCategory}
+        isOpen={categoryModal.isOpen}
+        onClose={categoryModal.close}
+        editingCategory={categoryModal.editingCategory}
+        onSubmit={categoryModal.save}
       />
     </div>
   );
