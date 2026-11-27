@@ -15,6 +15,7 @@ import {
   formatReadableDate,
 } from '../utils/timeFormatters';
 import { TaskCard } from '../components/TaskCard';
+import { Button, ViewHeader } from '../components/ui';
 
 interface SchedulePlannerViewProps {
   tasks: Task[];
@@ -67,32 +68,18 @@ export const SchedulePlannerView: React.FC<SchedulePlannerViewProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-zinc-800/80">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">
-            Time Blocking & Task Organizer
-          </span>
-          <h2
-            id="main-view-heading"
-            tabIndex={-1}
-            className="text-2xl font-bold tracking-tight text-zinc-50 mt-1 focus:outline-none"
-          >
-            Daily Schedule & Task Planner
-          </h2>
-          <p className="text-xs text-zinc-400 mt-1">
-            Plan every course module, engineering project, or hobby with explicit time budgets so
-            your day stays structured.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenNewTaskModal}
-          className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs px-4 py-2.5 shadow-[0_0_20px_rgba(255,255,255,0.12)] transition shrink-0"
-        >
-          <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
-          <span>Schedule New Task</span>
-        </button>
-      </header>
+      <ViewHeader
+        eyebrow="Time Blocking & Task Organizer"
+        eyebrowColor="text-cyan-400"
+        title="Daily Schedule & Task Planner"
+        description="Plan every course module, engineering project, or hobby with explicit time budgets so your day stays structured."
+        action={
+          <Button variant="primary" onClick={onOpenNewTaskModal}>
+            <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
+            <span>Schedule New Task</span>
+          </Button>
+        }
+      />
 
       {/* Semantic <search> landmark wrapping search and filtering controls */}
       <search className="rounded-2xl bg-zinc-900/55 border border-zinc-800/80 p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-glass-inset">
@@ -173,17 +160,17 @@ export const SchedulePlannerView: React.FC<SchedulePlannerViewProps> = ({
           </div>
 
           {(categoryFilter || statusFilter || searchQuery) && (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => {
                 onChangeCategoryFilter(undefined);
                 onChangeStatusFilter('');
                 onChangeSearchQuery('');
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition"
+              className="gap-1.5 px-3 py-1.5"
             >
               <RotateCcw size={13} aria-hidden="true" /> Reset
-            </button>
+            </Button>
           )}
         </div>
       </search>
@@ -223,13 +210,9 @@ export const SchedulePlannerView: React.FC<SchedulePlannerViewProps> = ({
           <p className="text-xs text-zinc-500">
             Create a task for {formatReadableDate(selectedDate)} or clear your filters.
           </p>
-          <button
-            type="button"
-            onClick={onOpenNewTaskModal}
-            className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs px-4 py-2 shadow-glow-emerald transition"
-          >
+          <Button variant="accent" onClick={onOpenNewTaskModal} className="mt-1 gap-1.5 py-2">
             <Plus size={15} aria-hidden="true" /> Create Task
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">

@@ -10,6 +10,7 @@ import {
 import { useWorkspaceController } from './controllers/useWorkspaceController';
 import { useReverseTimerController } from './controllers/useReverseTimerController';
 import { formatCountdown } from './utils/timeFormatters';
+import { AlertBanner } from './components/ui';
 import { SidebarNav } from './components/SidebarNav';
 import { TaskModal } from './components/TaskModal';
 import { CategoryModal } from './components/CategoryModal';
@@ -149,35 +150,21 @@ export const App: React.FC = () => {
 
       <main className="flex-1 min-w-0 px-6 py-7 lg:px-10 lg:py-8 max-w-[1440px] w-full mx-auto relative z-10">
         {workspace.error && (
-          <div
-            role="alert"
-            className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
-          >
-            <span>{workspace.error}</span>
-            <button
-              type="button"
-              className="rounded-lg border border-rose-400/30 bg-rose-500/20 px-3 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-500/30 transition"
-              onClick={workspace.refresh}
-            >
-              Retry Connection
-            </button>
-          </div>
+          <AlertBanner
+            tone="error"
+            message={workspace.error}
+            actionLabel="Retry Connection"
+            onAction={workspace.refresh}
+          />
         )}
 
         {actionAlert && (
-          <div
-            role="alert"
-            className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-xs text-amber-200"
-          >
-            <span>{actionAlert}</span>
-            <button
-              type="button"
-              onClick={() => setActionAlert(null)}
-              className="rounded-lg border border-amber-400/30 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-100 hover:bg-amber-500/30 transition"
-            >
-              Dismiss
-            </button>
-          </div>
+          <AlertBanner
+            tone="warning"
+            message={actionAlert}
+            actionLabel="Dismiss"
+            onAction={() => setActionAlert(null)}
+          />
         )}
 
         {workspace.activeView === 'focus' && (

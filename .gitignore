@@ -6,4 +6,5 @@ build/
 *.log
 coverage/
 .vite/
+*.tsbuildinfo
 
